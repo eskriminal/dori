@@ -228,7 +228,7 @@ _mali_osk_errcode_t _ump_ukk_map_mem( _ump_uk_map_mem_s *args )
 	int map_id;
 
 	session_data = (ump_session_data *)args->ctx;
-	if (NULL == session_data)
+	if( NULL == session_data )
 	{
 		MSG_ERR(("Session data is NULL in _ump_ukk_map_mem()\n"));
 		return _MALI_OSK_ERR_INVALID_ARGS;
@@ -355,7 +355,7 @@ void _ump_ukk_unmap_mem( _ump_uk_unmap_mem_s *args )
 
 	session_data = (ump_session_data *)args->ctx;
 
-	if (NULL == session_data)
+	if( NULL == session_data )
 	{
 		MSG_ERR(("Session data is NULL in _ump_ukk_map_mem()\n"));
 		return;

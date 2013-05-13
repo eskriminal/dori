@@ -72,7 +72,7 @@ USING_PMM ?= 0
 USING_MALI_RUN_TIME_PM ?= 0
 USING_MALI_PMM_TESTSUITE ?= 0
 USING_MALI_PMU ?= 0
-USING_GPU_UTILIZATION ?= 0
+USING_GPU_UTILIZATION ?= 1
 OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB ?= 16
 USING_PROFILING ?= 0
 USING_INTERNAL_PROFILING ?= 0
@@ -201,6 +201,7 @@ EXTRA_CFLAGS += -I$(MALI_INCLUDE_PREFIX)common/pmm
 ifeq ($(CONFIG_VIDEO_MALI400MP_UMP),y)
 OSKFILES=\
         $(FILES_PREFIX)$(OSKOS)/mali_osk_irq.o \
+	$(FILES_PREFIX)$(OSKOS)/mali_osk_wq.o \
         $(FILES_PREFIX)$(OSKOS)/mali_osk_wait_queue.o \
         $(FILES_PREFIX)$(OSKOS)/mali_osk_low_level_mem.o \
         $(FILES_PREFIX)$(OSKOS)/mali_osk_mali.o \
@@ -211,6 +212,7 @@ else
 OSKFILES=\
         $(FILES_PREFIX)$(OSKOS)/mali_osk_atomics.o \
         $(FILES_PREFIX)$(OSKOS)/mali_osk_irq.o \
+	$(FILES_PREFIX)$(OSKOS)/mali_osk_wq.o \
         $(FILES_PREFIX)$(OSKOS)/mali_osk_locks.o \
         $(FILES_PREFIX)$(OSKOS)/mali_osk_wait_queue.o \
         $(FILES_PREFIX)$(OSKOS)/mali_osk_low_level_mem.o \
@@ -265,9 +267,9 @@ mali-y := \
 	common/mali_scheduler.o \
 	common/mali_gp_scheduler.o \
 	common/mali_pp_scheduler.o \
-	common/mali_cluster.o \
 	common/mali_group.o \
 	common/mali_dlbu.o \
+	common/mali_broadcast.o \
 	common/mali_pm.o \
 	common/mali_pmu.o \
 	common/mali_user_settings_db.o \
@@ -295,6 +297,8 @@ endif
 
 # Add the profiling sources
 mali-y += $(PROFILING_BACKEND_SOURCES)
+
+mali-$(CONFIG_SYNC) += linux/mali_sync.o linux/mali_sync_user.o
 
 # Mali-400 PP in use
 ifeq ($(USING_MALI_PMM_TESTSUITE),1)

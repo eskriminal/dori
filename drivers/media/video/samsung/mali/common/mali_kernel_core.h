@@ -13,7 +13,6 @@
 
 #include "mali_osk.h"
 
-extern int mali_hang_check_interval;
 extern int mali_max_job_runtime;
 
 typedef enum
@@ -28,8 +27,6 @@ typedef enum
 _mali_osk_errcode_t mali_initialize_subsystems(void);
 
 void mali_terminate_subsystems(void);
-
-void mali_kernel_core_wakeup(void);
 
 _mali_product_id_t mali_kernel_core_get_product_id(void);
 

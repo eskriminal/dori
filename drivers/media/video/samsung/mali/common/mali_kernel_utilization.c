@@ -10,11 +10,10 @@
 
 #include "mali_kernel_utilization.h"
 #include "mali_osk.h"
-#include "mali_platform.h"
+#include "mali_osk_mali.h"
+#include "mali_kernel_common.h"
 
 /* Define how often to calculate and report GPU utilization, in milliseconds */
-int mali_gpu_utilization_timeout = 1000;
-
 static _mali_osk_lock_t *time_data_lock;
 
 static _mali_osk_atomic_t num_running_cores;
@@ -26,6 +25,10 @@ static u64 accumulated_work_time = 0;
 static _mali_osk_timer_t *utilization_timer = NULL;
 static mali_bool timer_running = MALI_FALSE;
 
+static u32 last_utilization = 0 ;
+
+u32 mali_gpu_utilization_timeout = 1000;
+void (*mali_utilization_callback)(unsigned int) = NULL;
 
 static void calculate_gpu_utilization(void* arg)
 {
@@ -47,7 +50,10 @@ static void calculate_gpu_utilization(void* arg)
 		_mali_osk_lock_signal(time_data_lock, _MALI_OSK_LOCKMODE_RW);
 
 		/* No work done for this period, report zero usage */
-		mali_gpu_utilization_handler(0);
+		if (NULL != mali_utilization_callback)
+		{
+			mali_utilization_callback(0);
+		}
 
 		return;
 	}
@@ -97,6 +103,8 @@ static void calculate_gpu_utilization(void* arg)
 
 	utilization = work_normalized / period_normalized;
 
+	last_utilization = utilization;
+
 	accumulated_work_time = 0;
 	period_start_time = time_now; /* starting a new period */
 
@@ -104,14 +112,39 @@ static void calculate_gpu_utilization(void* arg)
 
 	_mali_osk_timer_add(utilization_timer, _mali_osk_time_mstoticks(mali_gpu_utilization_timeout));
 
-
-	mali_gpu_utilization_handler(utilization);
+	if (NULL != mali_utilization_callback)
+	{
+		mali_utilization_callback(utilization);
+	}
 }
 
 _mali_osk_errcode_t mali_utilization_init(void)
 {
+	struct _mali_osk_device_data data;
+	if (_MALI_OSK_ERR_OK == _mali_osk_device_data_get(&data))
+	{
+		/* Use device specific settings (if defined) */
+		if (0 != data.utilization_interval)
+		{
+			mali_gpu_utilization_timeout = data.utilization_interval;
+		}
+		if (NULL != data.utilization_handler)
+		{
+			mali_utilization_callback = data.utilization_handler;
+		}
+	}
+
+	if (NULL != mali_utilization_callback)
+	{
+		MALI_DEBUG_PRINT(2, ("Mali GPU Utilization: Utilization handler installed with interval %u\n", mali_gpu_utilization_timeout));
+	}
+	else
+	{
+		MALI_DEBUG_PRINT(2, ("Mali GPU Utilization: No utilization handler installed\n"));
+	}
+
 	time_data_lock = _mali_osk_lock_init(_MALI_OSK_LOCKFLAG_ORDERED | _MALI_OSK_LOCKFLAG_SPINLOCK_IRQ |
-	                     _MALI_OSK_LOCKFLAG_NONINTERRUPTABLE, 0, _MALI_OSK_LOCK_ORDER_UTILIZATION);
+	                                     _MALI_OSK_LOCKFLAG_NONINTERRUPTABLE, 0, _MALI_OSK_LOCK_ORDER_UTILIZATION);
 
 	if (NULL == time_data_lock)
 	{
@@ -215,4 +248,19 @@ void mali_utilization_core_end(u64 time_now)
 
 		_mali_osk_lock_signal(time_data_lock, _MALI_OSK_LOCKMODE_RW);
 	}
+}
+
+u32 _mali_ukk_utilization_gp_pp(void)
+{
+	return last_utilization;
+}
+
+u32 _mali_ukk_utilization_gp(void)
+{
+	return last_utilization;
+}
+
+u32 _mali_ukk_utilization_pp(void)
+{
+	return last_utilization;
 }

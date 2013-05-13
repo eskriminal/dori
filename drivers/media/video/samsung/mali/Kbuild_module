@@ -204,12 +204,14 @@ SRC = \
 	common/mali_scheduler.c \
 	common/mali_gp_scheduler.c \
 	common/mali_pp_scheduler.c \
-	common/mali_cluster.c \
 	common/mali_group.c \
 	common/mali_dlbu.c \
+	common/mali_broadcast.c \
 	common/mali_pm.c \
 	common/mali_pmu.c \
 	common/mali_user_settings_db.c \
+	common/mali_kernel_utilization.c \
+	common/mali_l2_cache.c \
 	$(OSKOS)/mali_osk_pm.c \
 	linux/mali_kernel_pm.c \
 	linux/mali_pmu_power_up_down.c \

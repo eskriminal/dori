@@ -61,7 +61,7 @@ typedef enum
 	MALIGP2_REG_VAL_CMD_FORCE_HANG			= (1<< 6),
 	MALIGP2_REG_VAL_CMD_STOP_BUS 			= (1<< 9),
 #if defined(USING_MALI400) || defined(USING_MALI450)
-	MALI400GP_REG_VAL_CMD_SOFT_RESET		= (1<<10),
+	MALI400GP_REG_VAL_CMD_SOFT_RESET		= (1<<10), /* only valid for Mali-300 and later */
 #endif
 } mgp_contr_reg_val_cmd;
 
@@ -159,7 +159,7 @@ typedef enum
 		MALIGP2_REG_VAL_IRQ_HANG                | \
 		MALIGP2_REG_VAL_IRQ_FORCE_HANG          | \
 		MALIGP2_REG_VAL_IRQ_WRITE_BOUND_ERR     | \
-		MALIGP2_REG_VAL_IRQ_SYNC_ERROR 			| \
+		MALIGP2_REG_VAL_IRQ_SYNC_ERROR          | \
 		MALIGP2_REG_VAL_IRQ_AXI_BUS_ERROR       | \
 		MALI400GP_REG_VAL_IRQ_VS_INVALID_CMD      | \
 		MALI400GP_REG_VAL_IRQ_PLB_INVALID_CMD     | \

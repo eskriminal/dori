@@ -22,9 +22,7 @@
 #include <linux/mm.h>
 #include <linux/dma-mapping.h>
 #include <linux/spinlock.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,1,0)
 #include <linux/shrinker.h>
-#endif
 
 #include "mali_osk.h"
 #include "mali_ukk.h" /* required to hook in _mali_ukk_mem_mmap handling */
@@ -48,6 +46,7 @@ typedef struct mali_vma_usage_tracker
 	u32 cookie;
 } mali_vma_usage_tracker;
 
+#define INVALID_PAGE 0xffffffff
 
 /* Linked list structure to hold details of all OS allocations in a particular
  * mapping
@@ -101,23 +100,11 @@ static struct vm_operations_struct mali_kernel_vm_ops =
 #endif
 };
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,0,0)
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)
-static int mali_mem_shrink(int nr_to_scan, gfp_t gfp_mask)
-	#else
-static int mali_mem_shrink(struct shrinker *shrinker, int nr_to_scan, gfp_t gfp_mask)
-	#endif
-#else
 static int mali_mem_shrink(struct shrinker *shrinker, struct shrink_control *sc)
-#endif
 {
 	unsigned long flags;
 	AllocationList *item;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,0,0)
-	int nr = nr_to_scan;
-#else
 	int nr = sc->nr_to_scan;
-#endif
 
 	if (0 == nr)
 	{
@@ -188,7 +175,7 @@ static u32 _kernel_page_allocate(void)
 
 	if ( NULL == new_page )
 	{
-		return 0;
+		return INVALID_PAGE;
 	}
 
 	/* Ensure page is flushed from CPU caches. */
@@ -234,7 +221,7 @@ static AllocationList * _allocation_list_item_get(void)
 	}
 
 	item->physaddr = _kernel_page_allocate();
-	if ( 0 == item->physaddr )
+	if ( INVALID_PAGE == item->physaddr )
 	{
 		/* Non-fatal error condition, out of memory. Upper levels will handle this. */
 		_mali_osk_free( item );
@@ -260,7 +247,6 @@ static void _allocation_list_item_release(AllocationList * item)
 	_kernel_page_release(item->physaddr);
 	_mali_osk_free( item );
 }
-
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
 static int mali_kernel_memory_cpu_page_fault_handler(struct vm_area_struct *vma, struct vm_fault *vmf)
@@ -333,7 +319,6 @@ static void mali_kernel_memory_vma_close(struct vm_area_struct * vma)
 	 * In the case of the memory engine, it is called as the release function that has been registered with the engine*/
 }
 
-
 void _mali_osk_mem_barrier( void )
 {
 	mb();
@@ -390,12 +375,18 @@ void _mali_osk_mem_freeioregion( u32 phys, u32 size, mali_io_address virt )
 
 _mali_osk_errcode_t inline _mali_osk_mem_reqregion( u32 phys, u32 size, const char *description )
 {
+#if MALI_LICENSE_IS_GPL
+	return _MALI_OSK_ERR_OK; /* GPL driver gets the mem region for the resources registered automatically */
+#else
 	return ((NULL == request_mem_region(phys, size, description)) ? _MALI_OSK_ERR_NOMEM : _MALI_OSK_ERR_OK);
+#endif
 }
 
 void inline _mali_osk_mem_unreqregion( u32 phys, u32 size )
 {
+#if !MALI_LICENSE_IS_GPL
 	release_mem_region(phys, size);
+#endif
 }
 
 void inline _mali_osk_mem_iowrite32_relaxed( volatile mali_io_address addr, u32 offset, u32 val )
